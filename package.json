@@ -1,0 +1,12 @@
+{
+  "name": "ceylonsoftwarehub-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "CeylonSoftwareHub-client",
+    "CeylonSoftwareHub-server"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=CeylonSoftwareHub-client && npm run build --workspace=CeylonSoftwareHub-server"
+  }
+}
