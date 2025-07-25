@@ -3,35 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { MagnifyingGlass, Funnel, Star, ArrowRight, GridFour, ListBullets } from 'phosphor-react';
-import axios from 'axios';
-// If you still get a type error, you may need to install types: npm install --save-dev @types/axios
-
-// Define the Project type based on backend structure
-type Project = {
-  id: string;
-  title: string;
-  description: string;
-  longDescription?: string;
-  price: string | number;
-  image: string;
-  category: string;
-  rating: number;
-  features?: string[];
-  techStack?: string[];
-  pricingPlans?: Array<{
-    duration: string;
-    price: string;
-    discount?: string;
-    popular?: boolean;
-  }>;
-  systemRequirements?: string[];
-  isFeatured?: boolean;
-  stock?: number;
-  tags?: string[];
-  status?: string;
-  demo?: string;
-  github?: string;
-};
+import { projects, Project } from '../data/projects';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -41,61 +13,43 @@ const AllProjects: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'rating'>('name');
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const pageRef = useRef<HTMLDivElement>(null);
 
-  // Fetch projects from backend
-  useEffect(() => {
-    setLoading(true);
-    axios.get<{ data: Project[] }>('/api/products')
-      .then(res => {
-        setProjects(res.data.data || []);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError('Failed to load projects');
-        setLoading(false);
-      });
-  }, []);
-
-  // Compute categories from fetched projects
-  const categories = useMemo(() => [
+  const categories = [
     { id: 'all', label: 'All Products', count: projects.length },
-    ...Array.from(new Set(projects.map(p => p.category))).map(cat => ({
-      id: cat,
-      label: cat.charAt(0).toUpperCase() + cat.slice(1).replace(/-/g, ' '),
-      count: projects.filter(p => p.category === cat).length
-    }))
-  ], [projects]);
+    { id: 'ai-tools', label: 'AI Tools', count: projects.filter(p => p.category === 'ai-tools').length },
+    { id: 'games', label: 'Games', count: projects.filter(p => p.category === 'games').length },
+    { id: 'tracking-software', label: 'Tracking Software', count: projects.filter(p => p.category === 'tracking-software').length },
+    { id: 'web-applications', label: 'Web Apps', count: projects.filter(p => p.category === 'web-applications').length },
+    { id: 'mobile-apps', label: 'Mobile Apps', count: projects.filter(p => p.category === 'mobile-apps').length },
+  ];
 
   const filteredProjects = useMemo(() => {
     const filtered = projects.filter(project => {
-      const matchesSearch = (project.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (project.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (project.techStack || []).some((tech: string) => tech.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           project.techStack.some(tech => tech.toLowerCase().includes(searchTerm.toLowerCase()));
+      
       const matchesCategory = selectedCategory === 'all' || project.category === selectedCategory;
+      
       return matchesSearch && matchesCategory;
     });
+
     // Sort projects
     filtered.sort((a, b) => {
-      let aPrice: number, bPrice: number;
       switch (sortBy) {
-        case 'price': {
-          aPrice = typeof a.price === 'string' ? parseInt(a.price.replace(/[$,]/g, '')) : a.price;
-          bPrice = typeof b.price === 'string' ? parseInt(b.price.replace(/[$,]/g, '')) : b.price;
-          return aPrice - bPrice;
-        }
+        case 'price':
+          return parseInt(a.price.replace(/[$,]/g, '')) - parseInt(b.price.replace(/[$,]/g, ''));
         case 'rating':
           return b.rating - a.rating;
         default:
-          return (a.title || '').localeCompare(b.title || '');
+          return a.title.localeCompare(b.title);
       }
     });
+
     return filtered;
-  }, [projects, searchTerm, selectedCategory, sortBy]);
+  }, [searchTerm, selectedCategory, sortBy]);
 
   useEffect(() => {
     const page = pageRef.current;
@@ -141,41 +95,24 @@ const AllProjects: React.FC = () => {
     navigate(`/project/${projectId}`);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Loading projects...</h1>
-        </div>
-      </div>
-    );
-  }
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">{error}</h1>
-        </div>
-      </div>
-    );
-  }
   return (
-    <div ref={pageRef} className="min-h-screen bg-background pt-20">
+    <div ref={pageRef} className="pt-20 min-h-screen bg-background">
       {/* Header */}
-      <div className="page-header container mx-auto px-6 py-12">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4">
+      <div className="container px-6 py-12 mx-auto page-header">
+        <div className="mb-8 text-center">
+          <h1 className="mb-4 text-4xl font-bold md:text-6xl">
             <span className="gradient-text">All</span> Projects
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
             Explore our complete collection of premium software solutions
           </p>
         </div>
       </div>
+
       {/* Filter Controls */}
-      <div className="filter-controls sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/50">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+      <div className="sticky top-0 z-40 border-b backdrop-blur-md filter-controls bg-background/80 border-border/50">
+        <div className="container px-6 py-4 mx-auto">
+          <div className="flex flex-col gap-4 justify-between items-center lg:flex-row">
             {/* Search */}
             <div className="relative flex-1 max-w-md">
               <MagnifyingGlass size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
@@ -184,9 +121,10 @@ const AllProjects: React.FC = () => {
                 placeholder="Search projects..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-muted/30 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="py-2 pr-4 pl-10 w-full rounded-lg border bg-muted/30 border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
+
             {/* Category Filters */}
             <div className="flex flex-wrap gap-2">
               {categories.map((category) => (
@@ -203,18 +141,20 @@ const AllProjects: React.FC = () => {
                 </button>
               ))}
             </div>
+
             {/* Sort and View Controls */}
-            <div className="flex items-center gap-2">
+            <div className="flex gap-2 items-center">
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'name' | 'price' | 'rating')}
-                className="px-3 py-2 bg-muted/30 border border-border/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="px-3 py-2 text-sm rounded-lg border bg-muted/30 border-border/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
                 <option value="name">Sort by Name</option>
                 <option value="price">Sort by Price</option>
                 <option value="rating">Sort by Rating</option>
               </select>
-              <div className="flex border border-border/50 rounded-lg overflow-hidden">
+
+              <div className="flex overflow-hidden rounded-lg border border-border/50">
                 <button
                   onClick={() => setViewMode('grid')}
                   className={`p-2 ${viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'bg-muted/30'}`}
@@ -232,12 +172,13 @@ const AllProjects: React.FC = () => {
           </div>
         </div>
       </div>
+
       {/* Projects Grid/List */}
-      <div className="container mx-auto px-6 py-8">
+      <div className="container px-6 py-8 mx-auto">
         {filteredProjects.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">🔍</div>
-            <h3 className="text-2xl font-bold mb-2">No projects found</h3>
+          <div className="py-16 text-center">
+            <div className="mb-4 text-6xl">🔍</div>
+            <h3 className="mb-2 text-2xl font-bold">No projects found</h3>
             <p className="text-muted-foreground">Try adjusting your search or filters</p>
           </div>
         ) : (
@@ -248,48 +189,48 @@ const AllProjects: React.FC = () => {
             {filteredProjects.map((project) => (
               <div
                 key={project.id}
-                className="project-item group cursor-pointer"
+                className="cursor-pointer project-item group"
                 onClick={() => handleProjectClick(project.id)}
               >
                 {viewMode === 'grid' ? (
                   // Grid View
-                  <Card className="h-full hover:shadow-lg transition-all duration-300 group-hover:scale-105">
-                    <div className="relative overflow-hidden rounded-t-lg h-48">
+                  <Card className="h-full transition-all duration-300 hover:shadow-lg group-hover:scale-105">
+                    <div className="overflow-hidden relative h-48 rounded-t-lg">
                       <img 
                         src={project.image} 
                         alt={project.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      <div className="absolute top-4 right-4 w-10 h-10 bg-primary/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                      <div className="absolute inset-0 bg-gradient-to-t to-transparent opacity-0 transition-opacity duration-300 from-background/80 via-background/20 group-hover:opacity-100"></div>
+                      <div className="flex absolute top-4 right-4 justify-center items-center w-10 h-10 rounded-full opacity-0 backdrop-blur-sm transition-all duration-300 bg-primary/80 group-hover:opacity-100">
                         <ArrowRight size={20} className="text-white" />
                       </div>
-                      <div className="absolute top-4 left-4 glass-button text-sm font-semibold">
+                      <div className="absolute top-4 left-4 text-sm font-semibold glass-button">
                         {project.price}
                       </div>
                     </div>
                     <CardContent className="p-4">
-                      <div className="flex items-center gap-1 mb-2">
+                      <div className="flex gap-1 items-center mb-2">
                         {renderStars(project.rating)}
-                        <span className="text-sm text-muted-foreground ml-2">({project.rating}.0)</span>
+                        <span className="ml-2 text-sm text-muted-foreground">({project.rating}.0)</span>
                       </div>
-                      <CardTitle className="text-lg mb-2 group-hover:text-primary transition-colors">
+                      <CardTitle className="mb-2 text-lg transition-colors group-hover:text-primary">
                         {project.title}
                       </CardTitle>
-                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                      <p className="mb-3 text-sm text-muted-foreground line-clamp-2">
                         {project.description}
                       </p>
                       <div className="flex flex-wrap gap-1 mb-3">
                         {project.techStack.slice(0, 2).map((tech) => (
                           <span 
                             key={tech}
-                            className="px-2 py-1 text-xs bg-muted/50 text-muted-foreground rounded-md"
+                            className="px-2 py-1 text-xs rounded-md bg-muted/50 text-muted-foreground"
                           >
                             {tech}
                           </span>
                         ))}
                         {project.techStack.length > 2 && (
-                          <span className="px-2 py-1 text-xs bg-muted/50 text-muted-foreground rounded-md">
+                          <span className="px-2 py-1 text-xs rounded-md bg-muted/50 text-muted-foreground">
                             +{project.techStack.length - 2}
                           </span>
                         )}
@@ -300,7 +241,7 @@ const AllProjects: React.FC = () => {
                             e.stopPropagation();
                             navigate(`/project/${project.id}`);
                           }}
-                          className="flex-1 py-2 px-3 text-sm border border-border/50 rounded-lg hover:bg-muted/50 transition-colors"
+                          className="flex-1 px-3 py-2 text-sm rounded-lg border transition-colors border-border/50 hover:bg-muted/50"
                         >
                           Details
                         </button>
@@ -309,7 +250,7 @@ const AllProjects: React.FC = () => {
                             e.stopPropagation();
                             navigate(`/checkout/${project.id}`);
                           }}
-                          className="flex-1 py-2 px-3 text-sm bg-primary hover:bg-primary/80 text-primary-foreground rounded-lg transition-colors font-semibold"
+                          className="flex-1 px-3 py-2 text-sm font-semibold rounded-lg transition-colors bg-primary hover:bg-primary/80 text-primary-foreground"
                         >
                           Buy
                         </button>
@@ -318,54 +259,54 @@ const AllProjects: React.FC = () => {
                   </Card>
                 ) : (
                   // List View
-                  <Card className="hover:shadow-lg transition-all duration-300">
+                  <Card className="transition-all duration-300 hover:shadow-lg">
                     <div className="flex flex-col md:flex-row">
-                      <div className="relative w-full md:w-48 h-32 md:h-auto overflow-hidden rounded-l-lg">
+                      <div className="overflow-hidden relative w-full h-32 rounded-l-lg md:w-48 md:h-auto">
                         <img 
                           src={project.image} 
                           alt={project.title}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
                         />
-                        <div className="absolute top-2 left-2 glass-button text-sm font-semibold">
+                        <div className="absolute top-2 left-2 text-sm font-semibold glass-button">
                           {project.price}
                         </div>
                       </div>
                       <CardContent className="flex-1 p-4 md:p-6">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between">
+                        <div className="flex flex-col justify-between md:flex-row md:items-center">
                           <div className="flex-1">
-                            <div className="flex items-center gap-1 mb-2">
+                            <div className="flex gap-1 items-center mb-2">
                               {renderStars(project.rating)}
-                              <span className="text-sm text-muted-foreground ml-2">({project.rating}.0)</span>
+                              <span className="ml-2 text-sm text-muted-foreground">({project.rating}.0)</span>
                             </div>
-                            <CardTitle className="text-xl mb-2 group-hover:text-primary transition-colors">
+                            <CardTitle className="mb-2 text-xl transition-colors group-hover:text-primary">
                               {project.title}
                             </CardTitle>
-                            <p className="text-muted-foreground mb-3">
+                            <p className="mb-3 text-muted-foreground">
                               {project.description}
                             </p>
                             <div className="flex flex-wrap gap-2 mb-3">
                               {project.techStack.slice(0, 4).map((tech) => (
                                 <span 
                                   key={tech}
-                                  className="px-2 py-1 text-xs bg-muted/50 text-muted-foreground rounded-md"
+                                  className="px-2 py-1 text-xs rounded-md bg-muted/50 text-muted-foreground"
                                 >
                                   {tech}
                                 </span>
                               ))}
                               {project.techStack.length > 4 && (
-                                <span className="px-2 py-1 text-xs bg-muted/50 text-muted-foreground rounded-md">
+                                <span className="px-2 py-1 text-xs rounded-md bg-muted/50 text-muted-foreground">
                                   +{project.techStack.length - 4} more
                                 </span>
                               )}
                             </div>
                           </div>
-                          <div className="flex md:flex-col gap-2 mt-4 md:mt-0 md:ml-6">
+                          <div className="flex gap-2 mt-4 md:flex-col md:mt-0 md:ml-6">
                             <button 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 navigate(`/project/${project.id}`);
                               }}
-                              className="px-4 py-2 text-sm border border-border/50 rounded-lg hover:bg-muted/50 transition-colors"
+                              className="px-4 py-2 text-sm rounded-lg border transition-colors border-border/50 hover:bg-muted/50"
                             >
                               View Details
                             </button>
@@ -374,7 +315,7 @@ const AllProjects: React.FC = () => {
                                 e.stopPropagation();
                                 navigate(`/checkout/${project.id}`);
                               }}
-                              className="px-4 py-2 text-sm bg-primary hover:bg-primary/80 text-primary-foreground rounded-lg transition-colors font-semibold"
+                              className="px-4 py-2 text-sm font-semibold rounded-lg transition-colors bg-primary hover:bg-primary/80 text-primary-foreground"
                             >
                               Buy Now
                             </button>

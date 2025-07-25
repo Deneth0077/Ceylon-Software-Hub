@@ -5,35 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Upload, ArrowLeft, MessageCircle } from 'lucide-react';
-import axios from 'axios';
+import { projects } from '@/data/projects';
 import gsap from 'gsap';
-
-// Define the Project type based on backend structure
-type Project = {
-  id: string;
-  title: string;
-  description: string;
-  longDescription?: string;
-  price: string | number;
-  image: string;
-  category: string;
-  rating: number;
-  features?: string[];
-  techStack?: string[];
-  pricingPlans?: Array<{
-    duration: string;
-    price: string;
-    discount?: string;
-    popular?: boolean;
-  }>;
-  systemRequirements?: string[];
-  isFeatured?: boolean;
-  stock?: number;
-  tags?: string[];
-  status?: string;
-  demo?: string;
-  github?: string;
-};
 
 const Checkout = () => {
   const { id } = useParams();
@@ -45,26 +18,18 @@ const Checkout = () => {
   });
   const [selectedPlan, setSelectedPlan] = useState<number>(0);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [project, setProject] = useState<Project | null>(null);
+  
+  const project = projects.find(p => p.id === id);
   
   useEffect(() => {
-    if (id) {
-      setProject(null);
-      axios.get<{ data: Project }>(`/api/products/${id}`)
-        .then(res => {
-          const foundProject = res.data.data;
-          setProject(foundProject || null);
-          // Auto-select popular plan if available
-          if (foundProject?.pricingPlans) {
-            const popularIndex = foundProject.pricingPlans.findIndex(plan => plan.popular);
-            if (popularIndex !== -1) {
-              setSelectedPlan(popularIndex);
-            }
-          }
-        })
-        .catch(() => setProject(null));
+    // Auto-select popular plan if available
+    if (project?.pricingPlans) {
+      const popularIndex = project.pricingPlans.findIndex(plan => plan.popular);
+      if (popularIndex !== -1) {
+        setSelectedPlan(popularIndex);
+      }
     }
-  }, [id]);
+  }, [project]);
 
   useEffect(() => {
     // GSAP animations
@@ -81,9 +46,13 @@ const Checkout = () => {
 
   if (!project) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex justify-center items-center min-h-screen bg-background">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Loading project...</h1>
+          <h1 className="mb-4 text-2xl font-bold text-foreground">Project Not Found</h1>
+          <Button onClick={() => navigate('/')}>
+            <ArrowLeft className="mr-2 w-4 h-4" />
+            Back to Home
+          </Button>
         </div>
       </div>
     );
@@ -134,24 +103,24 @@ I have uploaded the payment slip and would like to proceed with the purchase.`;
   return (
     <div className="min-h-screen bg-background">
       {/* Background Effects */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-float-delayed" />
+      <div className="overflow-hidden fixed inset-0 pointer-events-none">
+        <div className="absolute left-10 top-20 w-64 h-64 rounded-full blur-3xl bg-primary/10 animate-float" />
+        <div className="absolute right-10 bottom-20 w-96 h-96 rounded-full blur-3xl bg-accent/10 animate-float-delayed" />
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 py-8">
+      <div className="container relative z-10 px-4 py-8 mx-auto">
         {/* Back Button */}
         <Button
           variant="ghost"
           onClick={() => navigate('/')}
           className="mb-6 text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <ArrowLeft className="mr-2 w-4 h-4" />
           Back to Projects
         </Button>
 
-        <div className="checkout-container max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="mx-auto max-w-4xl checkout-container">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
             {/* Project Details */}
             <Card className="card-glass border-border/50">
               <CardHeader>
@@ -161,7 +130,7 @@ I have uploaded the payment slip and would like to proceed with the purchase.`;
                 <img
                   src={project.image}
                   alt={project.title}
-                  className="w-full h-48 object-cover rounded-lg"
+                  className="object-cover w-full h-48 rounded-lg"
                 />
                 <h3 className="text-xl font-bold text-foreground">{project.title}</h3>
                 <p className="text-muted-foreground">{project.description}</p>
@@ -170,7 +139,7 @@ I have uploaded the payment slip and would like to proceed with the purchase.`;
                   {project.techStack.map((tech, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm"
+                      className="px-3 py-1 text-sm rounded-full bg-primary/20 text-primary"
                     >
                       {tech}
                     </span>
@@ -193,11 +162,11 @@ I have uploaded the payment slip and would like to proceed with the purchase.`;
                           }`}
                         >
                           {plan.popular && (
-                            <div className="absolute -top-2 left-4 px-2 py-1 bg-primary text-primary-foreground text-xs rounded-full">
+                            <div className="absolute -top-2 left-4 px-2 py-1 text-xs rounded-full bg-primary text-primary-foreground">
                               Popular
                             </div>
                           )}
-                          <div className="flex items-center justify-between">
+                          <div className="flex justify-between items-center">
                             <div>
                               <div className="font-semibold text-foreground">{plan.duration}</div>
                               {plan.discount && (
@@ -212,7 +181,7 @@ I have uploaded the payment slip and would like to proceed with the purchase.`;
                   </div>
                 ) : (
                   <div className="pt-4 border-t border-border">
-                    <div className="flex items-center justify-between">
+                    <div className="flex justify-between items-center">
                       <span className="text-lg font-semibold text-foreground">Total Price:</span>
                       <span className="text-2xl font-bold text-primary">{project.price}</span>
                     </div>
@@ -231,8 +200,8 @@ I have uploaded the payment slip and would like to proceed with the purchase.`;
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Bank Details */}
-                <div className="p-4 bg-muted/50 rounded-lg border border-border/50">
-                  <h4 className="font-semibold text-foreground mb-2">Bank Transfer Details:</h4>
+                <div className="p-4 rounded-lg border bg-muted/50 border-border/50">
+                  <h4 className="mb-2 font-semibold text-foreground">Bank Transfer Details:</h4>
                   <div className="space-y-1 text-sm text-muted-foreground">
                     <p><strong>Bank:</strong> Ceylon Commercial Bank</p>
                     <p><strong>Account:</strong> 8001234567890</p>
@@ -245,7 +214,7 @@ I have uploaded the payment slip and would like to proceed with the purchase.`;
                 </div>
 
                 {/* Form Fields */}
-                <div className="form-field space-y-2">
+                <div className="space-y-2 form-field">
                   <Label htmlFor="name" className="text-foreground">Full Name *</Label>
                   <Input
                     id="name"
@@ -259,7 +228,7 @@ I have uploaded the payment slip and would like to proceed with the purchase.`;
                   />
                 </div>
 
-                <div className="form-field space-y-2">
+                <div className="space-y-2 form-field">
                   <Label htmlFor="email" className="text-foreground">Email Address *</Label>
                   <Input
                     id="email"
@@ -273,7 +242,7 @@ I have uploaded the payment slip and would like to proceed with the purchase.`;
                   />
                 </div>
 
-                <div className="form-field space-y-2">
+                <div className="space-y-2 form-field">
                   <Label htmlFor="contact" className="text-foreground">Contact Number *</Label>
                   <Input
                     id="contact"
@@ -288,7 +257,7 @@ I have uploaded the payment slip and would like to proceed with the purchase.`;
                 </div>
 
                 {/* File Upload */}
-                <div className="form-field space-y-2">
+                <div className="space-y-2 form-field">
                   <Label htmlFor="slip" className="text-foreground">Upload Payment Slip *</Label>
                   <div className="relative">
                     <Input
@@ -300,8 +269,8 @@ I have uploaded the payment slip and would like to proceed with the purchase.`;
                       required
                     />
                     {uploadedFile && (
-                      <div className="mt-2 p-2 bg-primary/10 rounded-lg border border-primary/20">
-                        <div className="flex items-center gap-2 text-sm text-primary">
+                      <div className="p-2 mt-2 rounded-lg border bg-primary/10 border-primary/20">
+                        <div className="flex gap-2 items-center text-sm text-primary">
                           <Upload className="w-4 h-4" />
                           {uploadedFile.name}
                         </div>
@@ -314,14 +283,14 @@ I have uploaded the payment slip and would like to proceed with the purchase.`;
                 <Button
                   onClick={handleWhatsAppRedirect}
                   disabled={!isFormValid}
-                  className="w-full btn-glow text-lg py-6"
+                  className="py-6 w-full text-lg btn-glow"
                   size="lg"
                 >
-                  <MessageCircle className="w-5 h-5 mr-2" />
+                  <MessageCircle className="mr-2 w-5 h-5" />
                   Continue on WhatsApp
                 </Button>
 
-                <p className="text-xs text-muted-foreground text-center">
+                <p className="text-xs text-center text-muted-foreground">
                   By clicking continue, you'll be redirected to WhatsApp to complete your purchase
                 </p>
               </CardContent>
